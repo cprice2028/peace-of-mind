@@ -126,21 +126,52 @@ export default function EyeTrackingTest({ onDone }) {
   };
 
   const analyzeTracking = (data) => {
-    if (data.length < 10) return { smoothness: 0, label: "insufficient data", sampleCount: data.length };
-    const leftXValues = data.map((d) => d.leftX);
-    const diffs = leftXValues.slice(1).map((v, i) => Math.abs(v - leftXValues[i]));
-    const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-    const smoothness = Math.max(0, Math.min(100, 100 - avgDiff * 5000));
+  if (data.length < 10) {
+    return { smoothness: 0, label: "insufficient data", sampleCount: data.length };
+  }
+
+  const leftXValues = data.map((d) => d.leftX);
+  const leftYValues = data.map((d) => d.leftY);
+
+  // Check that eyes actually moved — closed/still eyes have near-zero range
+  const minX = Math.min(...leftXValues);
+  const maxX = Math.max(...leftXValues);
+  const minY = Math.min(...leftYValues);
+  const maxY = Math.max(...leftYValues);
+  const totalRange = (maxX - minX) + (maxY - minY);
+
+  // Iris should move at least 0.06 in normalized coords to count as real tracking
+  if (totalRange < 0.06) {
     return {
-      smoothness: Math.round(smoothness),
-      rawJitter: avgDiff,
+      smoothness: 5,
+      rawJitter: 0,
       sampleCount: data.length,
-      label:
-        smoothness > 70 ? "smooth"
-        : smoothness > 45 ? "mild irregularity"
-        : "significant irregularity",
+      label: "significant irregularity",
+      note: "insufficient eye movement detected",
     };
+  }
+
+  // Measure smoothness via frame-to-frame jitter
+  const diffs = leftXValues.slice(1).map((v, i) => Math.abs(v - leftXValues[i]));
+  const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+
+  // Scale: lower avgDiff = smoother. Typical smooth < 0.008, impaired > 0.015
+  const jitterScore = Math.max(0, Math.min(100, 100 - avgDiff * 5000));
+
+  // Weight both movement presence and smoothness
+  const rangeScore = Math.min(100, (totalRange / 0.15) * 100);
+  const smoothness = Math.round(jitterScore * 0.7 + rangeScore * 0.3);
+
+  return {
+    smoothness,
+    rawJitter: avgDiff,
+    sampleCount: data.length,
+    label:
+      smoothness > 70 ? "smooth"
+      : smoothness > 45 ? "mild irregularity"
+      : "significant irregularity",
   };
+};
 
   useEffect(() => {
     if (phase !== PHASES.TRACKING) return;

@@ -1,40 +1,22 @@
-/**
- * Peace of Mind — Scoring Algorithm
- * Takes all test results and returns a risk level + plain English recommendation
- */
-
-// Reaction time benchmarks (ms)
 const REACTION = {
   GOOD: 280,
   MODERATE: 380,
 };
 
-// Eye tracking smoothness score (0-100)
 const EYE = {
   GOOD: 70,
   MODERATE: 45,
 };
 
-// Symptom severity thresholds (0-10 scale per symptom)
 const SYMPTOM_SEVERE = 6;
 const SYMPTOM_MODERATE = 3;
 
-/**
- * Main scoring function
- * @param {Object} results - Combined results from all tests
- * @param {number[]} results.reactionTimes - Array of reaction times in ms
- * @param {number} results.avgReaction - Average reaction time
- * @param {Object|null} results.eyeTracking - Eye tracking result {smoothness, label}
- * @param {boolean} results.eyeSkipped - Whether eye test was skipped
- * @param {Object} results.symptoms - Symptom quiz answers {headache, nausea, confusion, lightSensitivity, memory, balance}
- * @returns {Object} { level: 'green'|'yellow'|'red', score: number, summary: string, actions: string[], details: Object }
- */
 export function calculateRisk(results) {
   const flags = [];
   let riskPoints = 0;
   const details = {};
 
-  // ── Reaction Time ──────────────────────────────────────────
+  // Reaction Time
   if (results.avgReaction != null) {
     if (results.avgReaction > REACTION.MODERATE) {
       riskPoints += 3;
@@ -49,7 +31,7 @@ export function calculateRisk(results) {
     }
   }
 
-  // ── Eye Tracking ───────────────────────────────────────────
+  // Eye Tracking
   if (results.eyeTracking && !results.eyeSkipped) {
     const s = results.eyeTracking.smoothness;
     if (s < EYE.MODERATE) {
@@ -67,14 +49,14 @@ export function calculateRisk(results) {
     details.eyes = "skipped";
   }
 
-  // ── Symptom Quiz ───────────────────────────────────────────
+  // Concussion Symptoms
   if (results.symptoms) {
-    const symptomKeys = Object.keys(results.symptoms);
+    const concussionKeys = ["headache", "nausea", "confusion", "lightSensitivity", "memory", "balance"];
     const severeSymptoms = [];
     const moderateSymptoms = [];
 
-    symptomKeys.forEach((key) => {
-      const val = results.symptoms[key];
+    concussionKeys.forEach((key) => {
+      const val = results.symptoms[key] || 0;
       if (val >= SYMPTOM_SEVERE) {
         riskPoints += 2;
         severeSymptoms.push(formatSymptomName(key));
@@ -86,11 +68,25 @@ export function calculateRisk(results) {
 
     if (severeSymptoms.length) flags.push(`severe ${severeSymptoms.join(", ")}`);
     if (moderateSymptoms.length) flags.push(`mild ${moderateSymptoms.join(", ")}`);
-
     details.symptoms = { severe: severeSymptoms, moderate: moderateSymptoms };
+
+    // Whiplash-specific symptoms
+    const whiplashKeys = ["neckPain", "neckMobility", "shoulderPain", "jawPain", "tingling"];
+    const whiplashScore = whiplashKeys.reduce((sum, k) => sum + (results.symptoms[k] || 0), 0);
+
+    if (whiplashScore >= 15) {
+      flags.push("significant whiplash indicators — cervical injury possible");
+      riskPoints += 1;
+      details.whiplash = "high";
+    } else if (whiplashScore >= 7) {
+      flags.push("mild whiplash indicators — monitor neck symptoms");
+      details.whiplash = "moderate";
+    } else {
+      details.whiplash = "low";
+    }
   }
 
-  // ── Compute Risk Level ─────────────────────────────────────
+  // Risk Level
   let level;
   if (riskPoints >= 5) {
     level = "red";
@@ -100,12 +96,13 @@ export function calculateRisk(results) {
     level = "green";
   }
 
-  const { summary, actions } = buildOutput(level, flags, results);
-
+  const { summary, actions } = buildOutput(level, flags, details);
   return { level, riskPoints, summary, actions, flags, details };
 }
 
-function buildOutput(level, flags, results) {
+function buildOutput(level, flags, details) {
+  const hasWhiplash = details.whiplash === "high" || details.whiplash === "moderate";
+
   if (level === "red") {
     return {
       summary:
@@ -116,6 +113,7 @@ function buildOutput(level, flags, results) {
         "Contact a doctor or visit urgent care within 24 hours",
         "Do not drive until evaluated by a medical professional",
         "Rest in a quiet, low-light environment",
+        ...(hasWhiplash ? ["Your neck symptoms suggest possible whiplash — mention this to your doctor"] : []),
       ],
     };
   }
@@ -130,18 +128,19 @@ function buildOutput(level, flags, results) {
         "Monitor symptoms over the next few hours",
         "If symptoms worsen, seek medical attention immediately",
         "Re-test tomorrow before returning to play",
+        ...(hasWhiplash ? ["Your neck symptoms may indicate whiplash — consider a cervical evaluation"] : []),
       ],
     };
   }
 
   return {
-    summary:
-      "Your results look normal. No signs of significant impairment detected.",
+    summary: "Your results look normal. No signs of significant impairment detected.",
     actions: [
       "You may return to play",
       "Continue to monitor how you feel",
       "If symptoms develop later, stop activity and re-test",
       "Stay hydrated and avoid overexertion",
+      ...(hasWhiplash ? ["Mild neck symptoms detected — stretch and monitor, see a physio if they persist"] : []),
     ],
   };
 }
@@ -156,20 +155,19 @@ function formatSymptomName(key) {
     balance: "balance problems",
     noise: "noise sensitivity",
     sleep: "sleep issues",
+    neckPain: "neck pain",
+    neckMobility: "limited neck mobility",
+    shoulderPain: "shoulder pain",
+    jawPain: "jaw pain",
+    tingling: "tingling in arms",
   };
   return map[key] || key;
 }
 
-/**
- * Returns color hex for a given risk level
- */
 export function levelColor(level) {
   return { green: "#00e676", yellow: "#ffeb3b", red: "#ff5252" }[level] || "#aaa";
 }
 
-/**
- * Returns emoji for a given risk level
- */
 export function levelEmoji(level) {
   return { green: "✓", yellow: "⚠", red: "✕" }[level] || "?";
 }
