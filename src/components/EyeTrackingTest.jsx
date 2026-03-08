@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { colors, radius, MAX_W} from "../utils/theme";
 
 const DOT_DURATION = 4000;
 const POSITIONS = [
@@ -10,17 +11,13 @@ const POSITIONS = [
 ];
 
 const PHASES = {
-  INTRO: "intro",
-  LOADING: "loading",
-  TRACKING: "tracking",
-  DONE: "done",
-  ERROR: "error",
+  INTRO: "intro", LOADING: "loading",
+  TRACKING: "tracking", DONE: "done", ERROR: "error",
 };
 
 export default function EyeTrackingTest({ onDone }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const faceMeshRef = useRef(null);
   const cameraRef = useRef(null);
   const trackingDataRef = useRef([]);
 
@@ -30,7 +27,7 @@ export default function EyeTrackingTest({ onDone }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [score, setScore] = useState(null);
 
-  const LEFT_IRIS = [468, 469, 470, 471, 472];
+  const LEFT_IRIS  = [468, 469, 470, 471, 472];
   const RIGHT_IRIS = [473, 474, 475, 476, 477];
 
   const getIrisCenter = (landmarks, indices) => {
@@ -49,56 +46,34 @@ export default function EyeTrackingTest({ onDone }) {
       const { Camera } = await import("@mediapipe/camera_utils");
 
       const faceMesh = new FaceMesh({
-        locateFile: (file) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
       });
-
       faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
+        maxNumFaces: 1, refineLandmarks: true,
+        minDetectionConfidence: 0.5, minTrackingConfidence: 0.5,
       });
-
       faceMesh.onResults((results) => {
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks[0]) {
+        if (results.multiFaceLandmarks?.[0]) {
           const lm = results.multiFaceLandmarks[0];
-          const left = getIrisCenter(lm, LEFT_IRIS);
+          const left  = getIrisCenter(lm, LEFT_IRIS);
           const right = getIrisCenter(lm, RIGHT_IRIS);
           if (left && right) {
-            trackingDataRef.current.push({
-              t: Date.now(),
-              leftX: left.x,
-              leftY: left.y,
-              rightX: right.x,
-              rightY: right.y,
-            });
+            trackingDataRef.current.push({ t: Date.now(), leftX: left.x, leftY: left.y, rightX: right.x, rightY: right.y });
           }
         }
       });
 
-      if (!videoRef.current) {
-        throw new Error("Video element not ready");
-      }
+      if (!videoRef.current) throw new Error("Video element not ready");
 
       const camera = new Camera(videoRef.current, {
-        onFrame: async () => {
-          if (videoRef.current) {
-            await faceMesh.send({ image: videoRef.current });
-          }
-        },
-        width: 320,
-        height: 240,
+        onFrame: async () => { if (videoRef.current) await faceMesh.send({ image: videoRef.current }); },
+        width: 320, height: 240,
       });
-
-      faceMeshRef.current = faceMesh;
       cameraRef.current = camera;
-
       await camera.start();
       setPhase(PHASES.TRACKING);
       runDotSequence();
     } catch (err) {
-      console.error(err);
       setErrorMsg("Could not load camera or face tracking. " + err.message);
       setPhase(PHASES.ERROR);
     }
@@ -107,71 +82,35 @@ export default function EyeTrackingTest({ onDone }) {
   const runDotSequence = () => {
     let currentDot = 0;
     setDotIndex(0);
-    const advanceDot = () => {
-      if (currentDot >= POSITIONS.length - 1) return;
-      currentDot++;
-      setDotIndex(currentDot);
-    };
     for (let i = 1; i < POSITIONS.length; i++) {
-      setTimeout(advanceDot, i * DOT_DURATION);
+      setTimeout(() => { currentDot++; setDotIndex(currentDot); }, i * DOT_DURATION);
     }
     setTimeout(finishTracking, POSITIONS.length * DOT_DURATION);
   };
 
   const finishTracking = () => {
     if (cameraRef.current) cameraRef.current.stop();
-    const result = analyzeTracking(trackingDataRef.current);
-    setScore(result);
+    setScore(analyzeTracking(trackingDataRef.current));
     setPhase(PHASES.DONE);
   };
 
   const analyzeTracking = (data) => {
-  if (data.length < 10) {
-    return { smoothness: 0, label: "insufficient data", sampleCount: data.length };
-  }
-
-  const leftXValues = data.map((d) => d.leftX);
-  const leftYValues = data.map((d) => d.leftY);
-
-  // Check that eyes actually moved — closed/still eyes have near-zero range
-  const minX = Math.min(...leftXValues);
-  const maxX = Math.max(...leftXValues);
-  const minY = Math.min(...leftYValues);
-  const maxY = Math.max(...leftYValues);
-  const totalRange = (maxX - minX) + (maxY - minY);
-
-  // Iris should move at least 0.06 in normalized coords to count as real tracking
-  if (totalRange < 0.06) {
+    if (data.length < 10) return { smoothness: 0, label: "insufficient data", sampleCount: data.length };
+    const leftXValues = data.map((d) => d.leftX);
+    const leftYValues = data.map((d) => d.leftY);
+    const totalRange = (Math.max(...leftXValues) - Math.min(...leftXValues))
+                     + (Math.max(...leftYValues) - Math.min(...leftYValues));
+    if (totalRange < 0.06) return { smoothness: 5, rawJitter: 0, sampleCount: data.length, label: "significant irregularity" };
+    const diffs = leftXValues.slice(1).map((v, i) => Math.abs(v - leftXValues[i]));
+    const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+    const jitterScore = Math.max(0, Math.min(100, 100 - avgDiff * 5000));
+    const rangeScore  = Math.min(100, (totalRange / 0.15) * 100);
+    const smoothness  = Math.round(jitterScore * 0.7 + rangeScore * 0.3);
     return {
-      smoothness: 5,
-      rawJitter: 0,
-      sampleCount: data.length,
-      label: "significant irregularity",
-      note: "insufficient eye movement detected",
+      smoothness, rawJitter: avgDiff, sampleCount: data.length,
+      label: smoothness > 70 ? "smooth" : smoothness > 45 ? "mild irregularity" : "significant irregularity",
     };
-  }
-
-  // Measure smoothness via frame-to-frame jitter
-  const diffs = leftXValues.slice(1).map((v, i) => Math.abs(v - leftXValues[i]));
-  const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-
-  // Scale: lower avgDiff = smoother. Typical smooth < 0.008, impaired > 0.015
-  const jitterScore = Math.max(0, Math.min(100, 100 - avgDiff * 5000));
-
-  // Weight both movement presence and smoothness
-  const rangeScore = Math.min(100, (totalRange / 0.15) * 100);
-  const smoothness = Math.round(jitterScore * 0.7 + rangeScore * 0.3);
-
-  return {
-    smoothness,
-    rawJitter: avgDiff,
-    sampleCount: data.length,
-    label:
-      smoothness > 70 ? "smooth"
-      : smoothness > 45 ? "mild irregularity"
-      : "significant irregularity",
   };
-};
 
   useEffect(() => {
     if (phase !== PHASES.TRACKING) return;
@@ -182,235 +121,227 @@ export default function EyeTrackingTest({ onDone }) {
     return () => clearInterval(interval);
   }, [dotIndex, phase]);
 
-  const handleSkip = () => {
-    if (cameraRef.current) cameraRef.current.stop();
-    onDone({ eyeTracking: null, eyeSkipped: true });
-  };
-
-  const handleFinish = () => {
-    onDone({ eyeTracking: score });
-  };
-
+  const handleSkip   = () => { if (cameraRef.current) cameraRef.current.stop(); onDone({ eyeTracking: null, eyeSkipped: true }); };
+  const handleFinish = () => onDone({ eyeTracking: score });
   const dot = POSITIONS[dotIndex];
 
+  const scoreColor = score
+    ? score.smoothness > 70 ? colors.success
+    : score.smoothness > 45 ? colors.warning
+    : colors.danger
+    : colors.textMuted;
+
   return (
-    <div style={styles.wrapper}>
-      {/* Always in the DOM so MediaPipe can access immediately */}
+    <div style={st.page}>
       <video ref={videoRef} style={{ display: "none" }} playsInline muted />
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
-      <div style={styles.header}>
-        <span style={styles.title}>PEACE OF MIND</span>
-        <span style={styles.step}>Test 2 of 2</span>
+      <div style={st.header}>
+        <span style={st.logo}>peace of mind</span>
+        <span style={st.step}>Test 2 of 2</span>
       </div>
 
       {phase === PHASES.INTRO && (
-        <div style={styles.card}>
-          <div style={styles.iconRing}>👁</div>
-          <h2 style={styles.cardTitle}>Eye Tracking Test</h2>
-          <p style={styles.cardText}>
-            Follow the green dot with your eyes as it moves around the screen.
-            Keep your head still. This tests smooth pursuit — a key indicator of
-            neurological function.
+        <div style={st.card}>
+          <span style={st.cardIcon}>👁️</span>
+          <h2 style={st.cardTitle}>Eye Tracking Test</h2>
+          <p style={st.cardBody}>
+            Follow the moving dot with your eyes as it moves around the screen.
+            Keep your head still. This tests smooth pursuit — a key indicator of neurological function.
           </p>
-          <p style={styles.cardNote}>Requires camera access</p>
-          <button onClick={startTracking} style={styles.primaryBtn}>Start Eye Test</button>
-          <button onClick={handleSkip} style={styles.ghostBtn}>Skip this test</button>
+          <p style={st.cardNote}>Requires camera access</p>
+          <button onClick={startTracking} style={st.primaryBtn}>Start Eye Test</button>
+          <button onClick={handleSkip} style={st.ghostBtn}>Skip this test</button>
         </div>
       )}
 
       {phase === PHASES.LOADING && (
-        <div style={styles.card}>
-          <div style={styles.spinner} />
-          <p style={styles.cardText}>Loading face tracking model...</p>
+        <div style={st.card}>
+          <div style={st.spinner} />
+          <p style={st.cardBody}>Loading face tracking model...</p>
         </div>
       )}
 
       {phase === PHASES.TRACKING && (
-        <div style={styles.trackingArea}>
-          <p style={styles.trackingInstruction}>
-            Follow the dot with your eyes — keep your head still
-          </p>
-          <div style={styles.dotArena}>
-            <div
-              style={{
-                ...styles.dot,
-                left: `${dot.x}%`,
-                top: `${dot.y}%`,
-                transform: "translate(-50%, -50%)",
-              }}
-            />
+        <div style={st.trackingArea}>
+          <p style={st.instruction}>Follow the dot with your eyes — keep your head still</p>
+          <div style={st.arena}>
+            <div style={{
+              ...st.dot,
+              left: `${dot.x}%`, top: `${dot.y}%`,
+              transform: "translate(-50%, -50%)",
+            }} />
           </div>
-          <div style={styles.progressTrack}>
-            <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+          <div style={st.progressTrack}>
+            <div style={{ ...st.progressFill, width: `${progress}%` }} />
           </div>
-          <p style={styles.dotCounter}>
-            Position {dotIndex + 1} of {POSITIONS.length}
-          </p>
+          <p style={st.dotCounter}>Position {dotIndex + 1} of {POSITIONS.length}</p>
         </div>
       )}
 
       {phase === PHASES.ERROR && (
-        <div style={styles.card}>
-          <div style={styles.iconRing}>⚠️</div>
-          <h2 style={styles.cardTitle}>Camera Unavailable</h2>
-          <p style={styles.cardText}>{errorMsg}</p>
-          <button onClick={handleSkip} style={styles.primaryBtn}>
-            Continue Without Eye Test
-          </button>
+        <div style={st.card}>
+          <span style={st.cardIcon}>⚠️</span>
+          <h2 style={st.cardTitle}>Camera Unavailable</h2>
+          <p style={st.cardBody}>{errorMsg}</p>
+          <button onClick={handleSkip} style={st.primaryBtn}>Continue Without Eye Test</button>
         </div>
       )}
 
       {phase === PHASES.DONE && score && (
-        <div style={styles.card}>
-          <div style={styles.scoreRing}>
-            <span style={styles.scoreNumber}>{score.smoothness}</span>
-            <span style={styles.scoreLabel}>/ 100</span>
+        <div style={st.card}>
+          <div style={{ ...st.scoreRing, borderColor: scoreColor }}>
+            <span style={{ ...st.scoreNum, color: scoreColor }}>{score.smoothness}</span>
+            <span style={st.scoreUnit}>/ 100</span>
           </div>
-          <h2 style={styles.cardTitle}>Eye Tracking Complete</h2>
-          <p style={styles.cardText}>
+          <h2 style={st.cardTitle}>Eye Tracking Complete</h2>
+          <p style={st.cardBody}>
             Your tracking was classified as:{" "}
-            <strong style={{ color: score.smoothness > 70 ? "#00e676" : score.smoothness > 45 ? "#ffeb3b" : "#ff5252" }}>
-              {score.label}
-            </strong>
+            <strong style={{ color: scoreColor }}>{score.label}</strong>
           </p>
-          <p style={styles.cardNote}>{score.sampleCount} frames analyzed</p>
-          <button onClick={handleFinish} style={styles.primaryBtn}>See Results →</button>
+          <p style={st.cardNote}>{score.sampleCount} frames analyzed</p>
+          <button onClick={handleFinish} style={st.primaryBtn}>See Results →</button>
         </div>
       )}
     </div>
   );
 }
 
-const styles = {
-  wrapper: {
+const st = {
+  page: {
     minHeight: "100vh",
-    background: "#0f0f1a",
-    color: "#fff",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    background: colors.bg,
+    color: colors.textPrimary,
+    fontFamily: "'DM Sans','Segoe UI',sans-serif",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    padding: "24px 16px",
+    padding: "24px 40px 64px",
     boxSizing: "border-box",
+    maxWidth: MAX_W,
+    margin: "0 auto",
+    width: "100%",
   },
   header: {
     width: "100%",
-    maxWidth: 480,
+    maxWidth: "100%",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 40,
   },
-  title: { fontSize: 13, fontWeight: 700, letterSpacing: 3, color: "#00e676" },
-  step: { fontSize: 12, color: "#666", letterSpacing: 1 },
+  logo: { fontSize: 15, fontWeight: 600, letterSpacing: 1, color: colors.primary },
+  step: { fontSize: 13, color: colors.textFaint, letterSpacing: 1 },
+
   card: {
     width: "100%",
-    maxWidth: 420,
-    background: "#1a1a2e",
-    borderRadius: 20,
-    padding: 32,
+    maxWidth: "100%",
+    background: colors.card,
+    borderRadius: 24,
+    padding: "56px 80px",
     textAlign: "center",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: 16,
+    gap: 22,
+    border: `1px solid ${colors.border}`,
   },
-  iconRing: {
-    fontSize: 40,
-    width: 80,
-    height: 80,
-    borderRadius: "50%",
-    background: "#0f0f1a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: { fontSize: 24, fontWeight: 800, margin: 0 },
-  cardText: { fontSize: 15, color: "#aaa", lineHeight: 1.6, margin: 0 },
-  cardNote: { fontSize: 12, color: "#555", margin: 0 },
+  cardIcon:  { fontSize: 56 },
+  cardTitle: { fontSize: 32, fontWeight: 800, margin: 0, color: colors.textPrimary },
+  cardBody:  { fontSize: 17, color: colors.textMuted, lineHeight: 1.75, margin: 0, maxWidth: 560 },
+  cardNote:  { fontSize: 13, color: colors.textFaint, margin: 0 },
+
   primaryBtn: {
     width: "100%",
-    padding: "14px",
-    background: "#00e676",
-    color: "#0f0f1a",
+    maxWidth: 480,
+    padding: "18px",
+    background: colors.primary,
+    color: "#fff",
     border: "none",
-    borderRadius: 12,
-    fontSize: 15,
+    borderRadius: 14,
+    fontSize: 16,
     fontWeight: 700,
     cursor: "pointer",
     marginTop: 8,
   },
   ghostBtn: {
     width: "100%",
-    padding: "12px",
+    maxWidth: 480,
+    padding: "14px",
     background: "transparent",
-    color: "#555",
-    border: "1px solid #2a2a3e",
-    borderRadius: 12,
-    fontSize: 14,
+    color: colors.textFaint,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 14,
+    fontSize: 15,
     cursor: "pointer",
   },
   spinner: {
-    width: 48,
-    height: 48,
-    border: "4px solid #2a2a3e",
-    borderTop: "4px solid #00e676",
+    width: 56,
+    height: 56,
+    border: `4px solid ${colors.trackBg}`,
+    borderTop: `4px solid ${colors.primary}`,
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
+
   trackingArea: {
     width: "100%",
-    maxWidth: 480,
+    maxWidth: "100%",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: 16,
+    gap: 18,
   },
-  trackingInstruction: { fontSize: 14, color: "#aaa", textAlign: "center" },
-  dotArena: {
+  trackingInstruction: {
+    fontSize: 16,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  arena: {
     width: "100%",
-    maxWidth: 480,
-    height: 320,
-    background: "#1a1a2e",
-    borderRadius: 20,
+    maxWidth: "100%",
+    height: 480,
+    background: colors.card,
+    borderRadius: 24,
     position: "relative",
     overflow: "hidden",
+    border: `1px solid ${colors.border}`,
   },
   dot: {
     position: "absolute",
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     borderRadius: "50%",
-    background: "#00e676",
-    boxShadow: "0 0 20px #00e676",
+    background: colors.primary,
+    boxShadow: `0 0 28px ${colors.primary}88`,
     transition: "left 0.4s ease, top 0.4s ease",
   },
   progressTrack: {
     width: "100%",
-    maxWidth: 480,
+    maxWidth: "100%",
     height: 6,
-    background: "#2a2a3e",
+    background: colors.trackBg,
     borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    background: "#00e676",
+    background: colors.primary,
     borderRadius: 3,
     transition: "width 0.1s linear",
   },
-  dotCounter: { fontSize: 13, color: "#555" },
+  dotCounter: { fontSize: 14, color: colors.textFaint },
+
   scoreRing: {
-    width: 100,
-    height: 100,
+    width: 160,
+    height: 160,
     borderRadius: "50%",
-    border: "4px solid #00e676",
+    border: "5px solid",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
   },
-  scoreNumber: { fontSize: 32, fontWeight: 800, lineHeight: 1 },
-  scoreLabel: { fontSize: 12, color: "#666" },
+  scoreNum:  { fontSize: 52, fontWeight: 900, lineHeight: 1 },
+  scoreUnit: { fontSize: 14, color: colors.textFaint },
 };
