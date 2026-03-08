@@ -178,186 +178,105 @@ export default function ResultsPage({ results, onRestart }) {
 
 // Inline style object for ResultsPage component
 const st = {
-  // Page container
   page: {
     minHeight: "100vh",
+    width: "100%",
+    maxWidth: "100%",
+    overflowX: "hidden",
     background: colors.bg,
     color: colors.textPrimary,
     fontFamily: "'DM Sans','Segoe UI',sans-serif",
+    boxSizing: "border-box",
   },
-  // Top bar with logo and restart button
   topBar: {
     maxWidth: MAX_W,
     margin: "0 auto",
-    padding: "28px 40px",
+    padding: "28px 20px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    boxSizing: "border-box",
   },
-  // Logo text
-  logo: {
-    fontSize: 15,
-    fontWeight: 600,
-    letterSpacing: 1,
-    color: colors.primary,
-  },
-  // Restart assessment button
+  logo: { fontSize: 15, fontWeight: 600, letterSpacing: 1, color: colors.primary },
   restartBtn: {
-    padding: "10px 22px",
+    padding: "10px 16px",
     background: "transparent",
     color: colors.textFaint,
     border: `1px solid ${colors.border}`,
     borderRadius: radius.sm,
-    fontSize: 14,
+    fontSize: 13,
     cursor: "pointer",
   },
-  // Main layout grid
   layout: {
     maxWidth: MAX_W,
     margin: "0 auto",
-    padding: "20px 40px 80px",
+    padding: "20px 20px 80px",
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 60,
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: 32,
+    boxSizing: "border-box",
+    width: "100%",
   },
-  // Left column container
-  leftCol: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 28,
-  },
-  // Risk badge style
+  leftCol: { display: "flex", flexDirection: "column", gap: 28, alignItems: "flex-start" },
   badge: {
-    width: 240,
-    height: 240,
+    width: 200,
+    height: 200,
     borderRadius: "50%",
     border: "5px solid",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  // Emoji in badge
-  badgeEmoji: {
-    fontSize: 64,
-    lineHeight: 1,
-  },
-  // Risk level text in badge
-  badgeLevel: {
-    fontSize: 26,
-    fontWeight: 900,
-    letterSpacing: 4,
-    marginTop: 10,
-  },
-  // Risk summary text
-  summary: {
-    fontSize: 20,
-    color: colors.textMuted,
-    lineHeight: 1.8,
-  },
-  // Card for detected risk factors
+  badgeEmoji: { fontSize: 52, lineHeight: 1 },
+  badgeLevel: { fontSize: 22, fontWeight: 900, letterSpacing: 4, marginTop: 10 },
+  summary: { fontSize: 17, color: colors.textMuted, lineHeight: 1.8 },
   flagsCard: {
     width: "100%",
     background: colors.card,
     borderRadius: radius.lg,
-    padding: "28px 32px",
+    padding: "24px 20px",
     border: `1px solid ${colors.border}`,
+    boxSizing: "border-box",
   },
-  // Label for cards
   cardLabel: {
-    fontSize: 11,
-    letterSpacing: 3,
-    color: colors.textFaint,
-    marginBottom: 20,
-    textTransform: "uppercase",
+    fontSize: 11, letterSpacing: 3, color: colors.textFaint,
+    marginBottom: 20, textTransform: "uppercase",
   },
-  // Row for each risk flag
-  flagRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: 14,
-  },
-  // Dot for risk flag
-  flagDot: {
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
-  },
-  // Text for risk flag
-  flagText: {
-    fontSize: 16,
-    color: colors.textMuted,
-  },
-  // Disclaimer text
-  disclaimer: {
-    fontSize: 13,
-    color: colors.textFaint,
-    lineHeight: 1.7,
-  },
-  // Right column container
-  rightCol: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 20,
-  },
-  // Card for recommended actions
+  flagRow: { display: "flex", alignItems: "center", gap: 14, marginBottom: 14 },
+  flagDot: { width: 8, height: 8, borderRadius: "50%", flexShrink: 0 },
+  flagText: { fontSize: 15, color: colors.textMuted },
+  disclaimer: { fontSize: 13, color: colors.textFaint, lineHeight: 1.7 },
+  rightCol: { display: "flex", flexDirection: "column", gap: 20 },
   card: {
     background: colors.card,
     borderRadius: radius.lg,
-    padding: "32px 40px",
+    padding: "28px 24px",
     border: `1px solid ${colors.border}`,
+    boxSizing: "border-box",
   },
-  // Row for each action
-  actionRow: {
-    display: "flex",
-    gap: 18,
-    marginBottom: 20,
-  },
-  // Number for action
-  actionNum: {
-    fontSize: 18,
-    fontWeight: 800,
-    minWidth: 26,
-  },
-  // Text for action
-  actionText: {
-    fontSize: 17,
-    color: colors.textMuted,
-    lineHeight: 1.7,
-  },
-  // Stats row grid
+  actionRow: { display: "flex", gap: 16, marginBottom: 18 },
+  actionNum: { fontSize: 17, fontWeight: 800, minWidth: 24, flexShrink: 0 },
+  actionText: { fontSize: 16, color: colors.textMuted, lineHeight: 1.7 },
   statsRow: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gridAutoRows: "120px",
-    gap: 16,
+    gap: 12,
+    boxSizing: "border-box",
   },
-  // Card for each stat
   statCard: {
     background: colors.card,
     borderRadius: radius.md,
-    padding: "24px 20px",
+    padding: "20px 12px",
     border: `1px solid ${colors.border}`,
     textAlign: "center",
+    boxSizing: "border-box",
   },
-  // Stat label
   statLabel: {
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.textFaint,
-    marginBottom: 12,
-    textTransform: "uppercase",
+    fontSize: 10, letterSpacing: 2, color: colors.textFaint,
+    marginBottom: 10, textTransform: "uppercase",
   },
-  // Stat value
-  statValue: {
-    fontSize: 32,
-    fontWeight: 900,
-    marginBottom: 8,
-  },
-  // Stat sub-label
-  statSub: {
-    fontSize: 12,
-    color: colors.textFaint,
-  },
+  statValue: { fontSize: 28, fontWeight: 900, marginBottom: 6 },
+  statSub: { fontSize: 12, color: colors.textFaint },
 };

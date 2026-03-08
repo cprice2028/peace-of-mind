@@ -116,76 +116,60 @@ export default function MemoryRecall({ memory, onDone }) {
 
 // Inline style object for component styling
 const st = {
-  // Page container
   page: {
     minHeight: "100vh",
+    width: "100%",
+    maxWidth: "100%",
+    overflowX: "hidden",
     background: colors.bg,
     color: colors.textPrimary,
     fontFamily: "'DM Sans','Segoe UI',sans-serif",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    padding: "32px 24px 64px"
+    padding: "32px 16px 64px",
+    boxSizing: "border-box",
   },
-  // Top bar styles
   topBar: {
     width: "100%",
     maxWidth: 640,
     display: "flex",
     justifyContent: "space-between",
-    marginBottom: 40
+    marginBottom: 40,
+    boxSizing: "border-box",
   },
-  // Logo text
-  logo: {
-    fontSize: 15,
-    fontWeight: 600,
-    letterSpacing: 1,
-    color: colors.primary
-  },
-  // Step label
-  step: {
-    fontSize: 13,
-    color: colors.textFaint
-  },
-  // Card container
+  logo: { fontSize: 15, fontWeight: 600, letterSpacing: 1, color: colors.primary },
+  step: { fontSize: 13, color: colors.textFaint },
   card: {
     width: "100%",
     maxWidth: 640,
     background: colors.card,
     border: `1px solid ${colors.border}`,
     borderRadius: radius.md,
-    padding: 48,
+    padding: "32px 20px",
     textAlign: "center",
     display: "flex",
     flexDirection: "column",
-    gap: 20
+    gap: 20,
+    boxSizing: "border-box",
   },
-  // Title text
-  title: {
-    fontSize: 28,
-    fontWeight: 800
-  },
-  // Body text
-  body: {
-    fontSize: 16,
-    color: colors.textMuted
-  },
-  // Grid for word buttons (3 columns x 4 rows)
+  title: { fontSize: 24, fontWeight: 800 },
+  body: { fontSize: 15, color: colors.textMuted },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3,1fr)",
-    gridTemplateRows: "repeat(4,1fr)",
-    gap: 12
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: 10,
+    width: "100%",
+    boxSizing: "border-box",
   },
-  // Word button style
   wordBtn: {
-    padding: "16px",
+    padding: "14px 8px",
     borderRadius: radius.sm,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 700,
-    cursor: "pointer"
+    cursor: "pointer",
+    boxSizing: "border-box",
   },
-  // Primary action button
   primaryBtn: {
     marginTop: 12,
     padding: "16px",
@@ -195,6 +179,8 @@ const st = {
     borderRadius: radius.md,
     fontSize: 16,
     fontWeight: 700,
-    cursor: "pointer"
-  }
+    cursor: "pointer",
+    width: "100%",
+    boxSizing: "border-box",
+  },
 };

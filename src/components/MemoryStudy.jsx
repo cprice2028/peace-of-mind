@@ -126,117 +126,87 @@ export default function MemoryStudy({ onDone }) {
 }
 
 const st = {
-
-  page:{
-    minHeight:"100vh",
-    background:colors.bg,
-    color:colors.textPrimary,
-    fontFamily:"'DM Sans','Segoe UI',sans-serif",
-    display:"flex",
-    flexDirection:"column",
-    alignItems:"center",
-    padding:"32px 24px 64px"
+  page: {
+    minHeight: "100vh",
+    width: "100%",
+    maxWidth: "100%",
+    overflowX: "hidden",
+    background: colors.bg,
+    color: colors.textPrimary,
+    fontFamily: "'DM Sans','Segoe UI',sans-serif",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "32px 16px 64px",
+    boxSizing: "border-box",
   },
-
-  topBar:{
-    width:"100%",
-    maxWidth:640,
-    display:"flex",
-    justifyContent:"space-between",
-    alignItems:"center",
-    marginBottom:40
+  topBar: {
+    width: "100%",
+    maxWidth: 640,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 40,
+    boxSizing: "border-box",
   },
-
-  logo:{
-    fontSize:15,
-    fontWeight:600,
-    letterSpacing:1,
-    color:colors.primary
+  logo: { fontSize: 15, fontWeight: 600, letterSpacing: 1, color: colors.primary },
+  step: { fontSize: 13, color: colors.textFaint },
+  card: {
+    width: "100%",
+    maxWidth: 640,
+    background: colors.card,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.md,
+    padding: "32px 24px",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    boxSizing: "border-box",
   },
-
-  step:{
-    fontSize:13,
-    color:colors.textFaint
+  icon: { fontSize: 48 },
+  title: { fontSize: 28, fontWeight: 800 },
+  body: { fontSize: 16, color: colors.textMuted, lineHeight: 1.7 },
+  primaryBtn: {
+    marginTop: 12,
+    padding: "16px",
+    background: colors.primary,
+    color: "#fff",
+    border: "none",
+    borderRadius: radius.md,
+    fontSize: 16,
+    fontWeight: 700,
+    cursor: "pointer",
+    width: "100%",
+    boxSizing: "border-box",
   },
-
-  card:{
-    width:"100%",
-    maxWidth:640,
-    background:colors.card,
-    border:`1px solid ${colors.border}`,
-    borderRadius:radius.md,
-    padding:48,
-    textAlign:"center",
-    display:"flex",
-    flexDirection:"column",
-    gap:18
+  studyArea: {
+    width: "100%",
+    maxWidth: 640,
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    gap: 24,
+    boxSizing: "border-box",
   },
-
-  icon:{fontSize:48},
-
-  title:{
-    fontSize:30,
-    fontWeight:800
+  studyLabel: { fontSize: 18, fontWeight: 700, color: colors.textMuted },
+  countdown: { fontSize: 72, fontWeight: 900, color: colors.primary },
+  wordGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: 12,
+    width: "100%",
+    boxSizing: "border-box",
   },
-
-  body:{
-    fontSize:16,
-    color:colors.textMuted,
-    lineHeight:1.7
+  wordCard: {
+    background: colors.card,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.sm,
+    padding: "14px 8px",
+    fontSize: 16,
+    fontWeight: 700,
+    letterSpacing: 1,
+    boxSizing: "border-box",
   },
-
-  primaryBtn:{
-    marginTop:12,
-    padding:"16px",
-    background:colors.primary,
-    color:"#fff",
-    border:"none",
-    borderRadius:radius.md,
-    fontSize:16,
-    fontWeight:700,
-    cursor:"pointer"
-  },
-
-  studyArea:{
-    width:"100%",
-    maxWidth:640,
-    textAlign:"center",
-    display:"flex",
-    flexDirection:"column",
-    gap:24
-  },
-
-  studyLabel:{
-    fontSize:18,
-    fontWeight:700,
-    color:colors.textMuted
-  },
-
-  countdown:{
-    fontSize:72,
-    fontWeight:900,
-    color:colors.primary
-  },
-
-  wordGrid:{
-    display:"grid",
-    gridTemplateColumns:"repeat(3,1fr)",
-    gap:14
-  },
-
-  wordCard:{
-    background:colors.card,
-    border:`1px solid ${colors.border}`,
-    borderRadius:radius.sm,
-    padding:"18px",
-    fontSize:18,
-    fontWeight:700,
-    letterSpacing:1
-  },
-
-  studyHint:{
-    fontSize:13,
-    color:colors.textFaint
-  }
-
+  studyHint: { fontSize: 13, color: colors.textFaint },
 };
