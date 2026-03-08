@@ -22,7 +22,7 @@ export default function MemoryStudy({ onDone }) {
     const targets = shuffle(WORD_POOL).slice(0,6);
     const distractors = shuffle(
       WORD_POOL.filter(w => !targets.includes(w))
-    ).slice(0,4);
+    ).slice(0,6);
 
     return {
       targets,

@@ -160,6 +160,9 @@ function Home({ onStart, onMyths }) {
         <p style={styles.homeDisclaimer}>
           Not a substitute for medical evaluation
         </p>
+        <p style={styles.homeDisclaimer}>
+          Developed by Charles Price and Matteo Lambert for HackTJ 13.0
+        </p>
       </div>
     </div>
   );
@@ -449,5 +452,7 @@ const styles = {
     fontSize: 12,
     color: colors.textFaint,
     textAlign: "center",
+    maxWidth: "100%",
+    width: "100%",
   },
 };

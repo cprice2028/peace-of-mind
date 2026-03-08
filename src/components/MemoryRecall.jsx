@@ -52,32 +52,53 @@ export default function MemoryRecall({ memory, onDone }) {
           Select all words you remember.
         </p>
 
-        {/* Grid of selectable word buttons */}
+        {/* Grid of selectable word buttons (always 12 in a 3x4 grid) */}
         <div style={st.grid}>
-          {memory.wordOptions.map((w, i) => {
-            const active = selected.has(w);
-            return (
-              <button
-                key={i}
-                onClick={() => toggle(w)}
-                style={{
-                  ...st.wordBtn,
-                  background: active
-                    ? colors.primary
-                    : colors.card,
-                  color: active
-                    ? "#fff"
-                    : colors.textMuted,
-                  border: `1px solid ${
-                    active
+          {Array.from({ length: 12 }).map((_, i) => {
+            const w = memory.wordOptions[i];
+            if (w) {
+              const active = selected.has(w);
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggle(w)}
+                  style={{
+                    ...st.wordBtn,
+                    background: active
                       ? colors.primary
-                      : colors.border
-                  }`
-                }}
-              >
-                {w}
-              </button>
-            );
+                      : colors.card,
+                    color: active
+                      ? "#fff"
+                      : colors.textMuted,
+                    border: `1px solid ${
+                      active
+                        ? colors.primary
+                        : colors.border
+                    }`
+                  }}
+                >
+                  {w}
+                </button>
+              );
+            } else {
+              // Render an empty, disabled button for missing words
+              return (
+                <button
+                  key={i}
+                  disabled
+                  style={{
+                    ...st.wordBtn,
+                    background: colors.card,
+                    color: colors.textMuted,
+                    border: `1px solid ${colors.border}`,
+                    opacity: 0.5,
+                    cursor: "default"
+                  }}
+                >
+                  {/* empty slot */}
+                </button>
+              );
+            }
           })}
         </div>
 
@@ -149,10 +170,11 @@ const st = {
     fontSize: 16,
     color: colors.textMuted
   },
-  // Grid for word buttons
+  // Grid for word buttons (3 columns x 4 rows)
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3,1fr)",
+    gridTemplateRows: "repeat(4,1fr)",
     gap: 12
   },
   // Word button style
