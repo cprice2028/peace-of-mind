@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const DOT_DURATION = 4000; // ms to track each position
+const DOT_DURATION = 4000;
 const POSITIONS = [
   { x: 15, y: 50 },
   { x: 85, y: 50 },
@@ -30,7 +30,6 @@ export default function EyeTrackingTest({ onDone }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [score, setScore] = useState(null);
 
-  // LEFT EYE IRIS: landmarks 468-472, RIGHT: 473-477
   const LEFT_IRIS = [468, 469, 470, 471, 472];
   const RIGHT_IRIS = [473, 474, 475, 476, 477];
 
@@ -45,7 +44,6 @@ export default function EyeTrackingTest({ onDone }) {
 
   const startTracking = async () => {
     setPhase(PHASES.LOADING);
-
     try {
       const { FaceMesh } = await import("@mediapipe/face_mesh");
       const { Camera } = await import("@mediapipe/camera_utils");
@@ -57,7 +55,7 @@ export default function EyeTrackingTest({ onDone }) {
 
       faceMesh.setOptions({
         maxNumFaces: 1,
-        refineLandmarks: true, // enables iris landmarks
+        refineLandmarks: true,
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
@@ -70,7 +68,6 @@ export default function EyeTrackingTest({ onDone }) {
           if (left && right) {
             trackingDataRef.current.push({
               t: Date.now(),
-              dotIndex: dotIndex,
               leftX: left.x,
               leftY: left.y,
               rightX: right.x,
@@ -80,9 +77,15 @@ export default function EyeTrackingTest({ onDone }) {
         }
       });
 
+      if (!videoRef.current) {
+        throw new Error("Video element not ready");
+      }
+
       const camera = new Camera(videoRef.current, {
         onFrame: async () => {
-          await faceMesh.send({ image: videoRef.current });
+          if (videoRef.current) {
+            await faceMesh.send({ image: videoRef.current });
+          }
         },
         width: 320,
         height: 240,
@@ -104,21 +107,14 @@ export default function EyeTrackingTest({ onDone }) {
   const runDotSequence = () => {
     let currentDot = 0;
     setDotIndex(0);
-
     const advanceDot = () => {
-      if (currentDot >= POSITIONS.length - 1) {
-        finishTracking();
-        return;
-      }
+      if (currentDot >= POSITIONS.length - 1) return;
       currentDot++;
       setDotIndex(currentDot);
     };
-
-    // Advance dot every DOT_DURATION ms
     for (let i = 1; i < POSITIONS.length; i++) {
       setTimeout(advanceDot, i * DOT_DURATION);
     }
-    // Finish after all dots
     setTimeout(finishTracking, POSITIONS.length * DOT_DURATION);
   };
 
@@ -130,41 +126,27 @@ export default function EyeTrackingTest({ onDone }) {
   };
 
   const analyzeTracking = (data) => {
-    if (data.length < 10) return { smoothness: 0, label: "insufficient data" };
-
-    // Calculate variance in iris X movement (should be smooth, low jitter)
+    if (data.length < 10) return { smoothness: 0, label: "insufficient data", sampleCount: data.length };
     const leftXValues = data.map((d) => d.leftX);
-    const diffs = leftXValues
-      .slice(1)
-      .map((v, i) => Math.abs(v - leftXValues[i]));
+    const diffs = leftXValues.slice(1).map((v, i) => Math.abs(v - leftXValues[i]));
     const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-
-    // Lower avgDiff = smoother tracking
-    // Typical smooth tracking < 0.008, impaired > 0.015
     const smoothness = Math.max(0, Math.min(100, 100 - avgDiff * 5000));
-
     return {
       smoothness: Math.round(smoothness),
       rawJitter: avgDiff,
       sampleCount: data.length,
       label:
-        smoothness > 70
-          ? "smooth"
-          : smoothness > 45
-          ? "mild irregularity"
-          : "significant irregularity",
+        smoothness > 70 ? "smooth"
+        : smoothness > 45 ? "mild irregularity"
+        : "significant irregularity",
     };
   };
 
-  // Progress bar tick
   useEffect(() => {
     if (phase !== PHASES.TRACKING) return;
     setProgress(0);
     const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) return 0;
-        return p + 100 / (DOT_DURATION / 100);
-      });
+      setProgress((p) => (p >= 100 ? 0 : p + 100 / (DOT_DURATION / 100)));
     }, 100);
     return () => clearInterval(interval);
   }, [dotIndex, phase]);
@@ -182,6 +164,10 @@ export default function EyeTrackingTest({ onDone }) {
 
   return (
     <div style={styles.wrapper}>
+      {/* Always in the DOM so MediaPipe can access immediately */}
+      <video ref={videoRef} style={{ display: "none" }} playsInline muted />
+      <canvas ref={canvasRef} style={{ display: "none" }} />
+
       <div style={styles.header}>
         <span style={styles.title}>PEACE OF MIND</span>
         <span style={styles.step}>Test 2 of 2</span>
@@ -197,12 +183,8 @@ export default function EyeTrackingTest({ onDone }) {
             neurological function.
           </p>
           <p style={styles.cardNote}>Requires camera access</p>
-          <button onClick={startTracking} style={styles.primaryBtn}>
-            Start Eye Test
-          </button>
-          <button onClick={handleSkip} style={styles.ghostBtn}>
-            Skip this test
-          </button>
+          <button onClick={startTracking} style={styles.primaryBtn}>Start Eye Test</button>
+          <button onClick={handleSkip} style={styles.ghostBtn}>Skip this test</button>
         </div>
       )}
 
@@ -215,20 +197,9 @@ export default function EyeTrackingTest({ onDone }) {
 
       {phase === PHASES.TRACKING && (
         <div style={styles.trackingArea}>
-          {/* Hidden video feed for MediaPipe */}
-          <video
-            ref={videoRef}
-            style={{ display: "none" }}
-            playsInline
-            muted
-          />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-
           <p style={styles.trackingInstruction}>
             Follow the dot with your eyes — keep your head still
           </p>
-
-          {/* Dot arena */}
           <div style={styles.dotArena}>
             <div
               style={{
@@ -239,17 +210,9 @@ export default function EyeTrackingTest({ onDone }) {
               }}
             />
           </div>
-
-          {/* Progress for current dot */}
           <div style={styles.progressTrack}>
-            <div
-              style={{
-                ...styles.progressFill,
-                width: `${progress}%`,
-              }}
-            />
+            <div style={{ ...styles.progressFill, width: `${progress}%` }} />
           </div>
-
           <p style={styles.dotCounter}>
             Position {dotIndex + 1} of {POSITIONS.length}
           </p>
@@ -281,9 +244,7 @@ export default function EyeTrackingTest({ onDone }) {
             </strong>
           </p>
           <p style={styles.cardNote}>{score.sampleCount} frames analyzed</p>
-          <button onClick={handleFinish} style={styles.primaryBtn}>
-            See Results →
-          </button>
+          <button onClick={handleFinish} style={styles.primaryBtn}>See Results →</button>
         </div>
       )}
     </div>
@@ -310,12 +271,7 @@ const styles = {
     alignItems: "center",
     marginBottom: 32,
   },
-  title: {
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: 3,
-    color: "#00e676",
-  },
+  title: { fontSize: 13, fontWeight: 700, letterSpacing: 3, color: "#00e676" },
   step: { fontSize: 12, color: "#666", letterSpacing: 1 },
   card: {
     width: "100%",
@@ -380,11 +336,7 @@ const styles = {
     alignItems: "center",
     gap: 16,
   },
-  trackingInstruction: {
-    fontSize: 14,
-    color: "#aaa",
-    textAlign: "center",
-  },
+  trackingInstruction: { fontSize: 14, color: "#aaa", textAlign: "center" },
   dotArena: {
     width: "100%",
     maxWidth: 480,
