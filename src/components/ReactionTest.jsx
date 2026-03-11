@@ -289,7 +289,7 @@ export default function ReactionTest({ onDone }) {
 
     return (
       <div style={st.page}>
-        <Header step="Test 1 of 2" />
+        <Header step="Test 1 of 3" />
         <h2 style={st.resultsH2}>Reaction Results</h2>
 
         {/*Stat cards*/}
