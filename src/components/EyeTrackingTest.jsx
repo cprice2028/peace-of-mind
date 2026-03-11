@@ -56,11 +56,29 @@ export default function EyeTrackingTest({ onDone }) {
     };
   };
 
+  // Injects a <script> tag and waits for it to load
+  const loadScript = (src) =>
+    new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve(); // already loaded
+      const s = document.createElement("script");
+      s.src = src;
+      s.crossOrigin = "anonymous";
+      s.onload = resolve;
+      s.onerror = () => reject(new Error(`Failed to load: ${src}`));
+      document.head.appendChild(s);
+    });
+
   const startTracking = async () => {
     setPhase(PHASES.LOADING);
     try {
-      const { FaceMesh } = await import("@mediapipe/face_mesh");
-      const { Camera } = await import("@mediapipe/camera_utils");
+      // Load MediaPipe as classic scripts — CDN ES modules don't export constructors correctly
+      await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
+
+      const FaceMesh = window.FaceMesh;
+      const Camera = window.Camera;
+
+      if (!FaceMesh || !Camera) throw new Error("MediaPipe failed to attach to window.");
 
       const faceMesh = new FaceMesh({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
@@ -87,7 +105,9 @@ export default function EyeTrackingTest({ onDone }) {
       if (!videoRef.current) throw new Error("Video element not ready");
 
       const camera = new Camera(videoRef.current, {
-        onFrame: async () => { if (videoRef.current) await faceMesh.send({ image: videoRef.current }); },
+        onFrame: async () => {
+          if (videoRef.current) await faceMesh.send({ image: videoRef.current });
+        },
         width: 320, height: 240,
       });
       cameraRef.current = camera;
@@ -99,6 +119,7 @@ export default function EyeTrackingTest({ onDone }) {
       setPhase(PHASES.ERROR);
     }
   };
+
 
   const runDotSequence = () => {
     let currentDot = 0;
@@ -159,7 +180,7 @@ export default function EyeTrackingTest({ onDone }) {
 
       <div style={st.header}>
         <span style={st.logo}>peace of mind</span>
-        <span style={st.step}>Test 2 of 2</span>
+        <span style={st.step}>Test 2 of 3</span>
       </div>
 
       {phase === PHASES.INTRO && (

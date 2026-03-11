@@ -40,7 +40,7 @@ export default function MemoryRecall({ memory, onDone }) {
       {/* Top bar with logo and step name */}
       <div style={st.topBar}>
         <span style={st.logo}>peace of mind</span>
-        <span style={st.step}>Memory Recall</span>
+        <span style={st.step}>Test 3 of 3</span>
       </div>
 
       {/* Main card with instructions and word grid */}

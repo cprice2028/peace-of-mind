@@ -238,7 +238,7 @@ export default function ReactionTest({ onDone }) {
   if (phase === PHASES.INTRO) {
     return (
       <div style={st.page}>
-        <Header step="Test 1 of 2" />
+        <Header step="Test 1 of 3" />
         <div style={st.card}>
           <p style={st.cardIcon}>⚡</p>
           <h2 style={st.cardH2}>Reaction Test</h2>
